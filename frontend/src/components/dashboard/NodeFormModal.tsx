@@ -20,6 +20,7 @@ const emptyForm: NodePayload = {
   port: 22,
   username: "",
   password: "",
+  is_pinned: false,
   note: "",
 };
 
@@ -35,6 +36,7 @@ export function NodeFormModal({ open, mode, node, loading, onClose, onSubmit }: 
       port: node.port,
       username: node.username,
       password: node.password,
+      is_pinned: node.is_pinned,
       note: node.note ?? "",
     };
   }, [node]);
