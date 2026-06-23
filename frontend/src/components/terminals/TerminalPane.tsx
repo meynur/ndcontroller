@@ -1,6 +1,15 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { LoaderCircle, RefreshCcw, WifiOff, X } from "lucide-react";
+import {
+  Copy,
+  ExternalLink,
+  LoaderCircle,
+  Maximize2,
+  Minimize2,
+  RefreshCcw,
+  WifiOff,
+  X,
+} from "lucide-react";
 import type { FitAddon as XtermFitAddon } from "@xterm/addon-fit";
 import type { Terminal as XtermTerminal } from "@xterm/xterm";
 
@@ -19,15 +28,107 @@ type TerminalSocketMessage =
   | { type: "exit"; data?: string }
   | { type: "pong" };
 
+type ContextMenuState = {
+  x: number;
+  y: number;
+} | null;
+
 export function TerminalPane({ pane, node }: TerminalPaneProps) {
+  const paneRef = useRef<HTMLElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const terminalRef = useRef<XtermTerminal | null>(null);
   const fitAddonRef = useRef<XtermFitAddon | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const closePane = useTerminalStore((state) => state.closePane);
   const setPaneStatus = useTerminalStore((state) => state.setPaneStatus);
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    if (toastTimeoutRef.current !== null) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+  }, []);
+
+  const sendInput = useCallback((data: string) => {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    socket.send(JSON.stringify({ type: "input", data }));
+  }, []);
+
+  const fitTerminal = useCallback(() => {
+    const fitAddon = fitAddonRef.current;
+    const term = terminalRef.current;
+    const socket = socketRef.current;
+
+    if (!fitAddon || !term) {
+      return;
+    }
+
+    fitAddon.fit();
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      sendResize(socket, term);
+    }
+  }, []);
+
+  const pasteFromClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) {
+        showToast("Буфер обмена пуст");
+        return;
+      }
+      sendInput(text);
+      showToast("Текст вставлен");
+    } catch {
+      showToast("Не удалось прочитать буфер обмена");
+    } finally {
+      setContextMenu(null);
+    }
+  }, [sendInput, showToast]);
+
+  const copySshCommand = useCallback(async () => {
+    if (!node) {
+      showToast("Нода недоступна");
+      return;
+    }
+
+    const command = `ssh ${node.username}@${node.host} -p ${node.port}`;
+    try {
+      await navigator.clipboard.writeText(command);
+      showToast("Команда скопирована");
+    } catch {
+      showToast("Не удалось скопировать команду");
+    }
+  }, [node, showToast]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const element = paneRef.current;
+    if (!element) {
+      return;
+    }
+
+    try {
+      if (document.fullscreenElement === element) {
+        await document.exitFullscreen();
+      } else {
+        await element.requestFullscreen();
+      }
+    } catch {
+      showToast("Не удалось переключить полноэкранный режим");
+    }
+  }, [showToast]);
 
   useEffect(() => {
     const element = hostRef.current;
@@ -89,8 +190,9 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
           }
 
           if (message.type === "error") {
-            setPaneStatus(pane.nodeId, "error", message.message ?? "Неизвестная ошибка терминала");
-            term.writeln(`\r\n[ошибка] ${message.message ?? "Неизвестная ошибка терминала"}`);
+            const errorMessage = message.message ?? "Неизвестная ошибка терминала";
+            setPaneStatus(pane.nodeId, "error", errorMessage);
+            term.writeln(`\r\n[ошибка] ${errorMessage}`);
             return;
           }
 
@@ -101,8 +203,9 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
         };
 
         socket.onerror = () => {
-          setPaneStatus(pane.nodeId, "error", "Не удалось подключиться к терминалу по веб-сокету");
-          term.writeln("\r\n[ошибка] Не удалось подключиться к терминалу по веб-сокету");
+          const errorMessage = "Не удалось подключиться к терминалу по веб-сокету";
+          setPaneStatus(pane.nodeId, "error", errorMessage);
+          term.writeln(`\r\n[ошибка] ${errorMessage}`);
         };
 
         socket.onclose = () => {
@@ -110,10 +213,46 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
         };
 
         term.onData((data) => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: "input", data }));
-          }
+          sendInput(data);
         });
+
+        const handlePaste = (event: ClipboardEvent) => {
+          if (!event.clipboardData) {
+            return;
+          }
+          event.preventDefault();
+          const text = event.clipboardData.getData("text");
+          if (text) {
+            sendInput(text);
+            showToast("Текст вставлен");
+          }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "v") {
+            event.preventDefault();
+            void pasteFromClipboard();
+          }
+          if (event.key === "Escape") {
+            setContextMenu(null);
+          }
+        };
+
+        const handleContextMenu = (event: MouseEvent) => {
+          event.preventDefault();
+          const paneBounds = paneRef.current?.getBoundingClientRect();
+          if (!paneBounds) {
+            return;
+          }
+          setContextMenu({
+            x: event.clientX - paneBounds.left,
+            y: event.clientY - paneBounds.top,
+          });
+        };
+
+        element.addEventListener("paste", handlePaste);
+        element.addEventListener("keydown", handleKeyDown);
+        element.addEventListener("contextmenu", handleContextMenu);
 
         resizeObserverRef.current = new ResizeObserver(() => {
           fitAddon.fit();
@@ -122,6 +261,14 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
           }
         });
         resizeObserverRef.current.observe(element);
+
+        const cleanupListeners = () => {
+          element.removeEventListener("paste", handlePaste);
+          element.removeEventListener("keydown", handleKeyDown);
+          element.removeEventListener("contextmenu", handleContextMenu);
+        };
+
+        (term as XtermTerminal & { __cleanupListeners__?: () => void }).__cleanupListeners__ = cleanupListeners;
       } catch (error) {
         if (!active) {
           return;
@@ -136,6 +283,11 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
 
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
+
       const socket = socketRef.current;
       if (socket && socket.readyState < WebSocket.CLOSING) {
         socket.close();
@@ -143,11 +295,50 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
 
       socketRef.current = null;
       fitAddonRef.current = null;
-      const term = terminalRef.current;
+
+      const term = terminalRef.current as (XtermTerminal & { __cleanupListeners__?: () => void }) | null;
+      term?.__cleanupListeners__?.();
       term?.dispose();
       terminalRef.current = null;
     };
-  }, [pane.nodeId, setPaneStatus]);
+  }, [pane.nodeId, pasteFromClipboard, sendInput, setPaneStatus, showToast]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const current = paneRef.current;
+      setIsFullscreen(document.fullscreenElement === current);
+      window.setTimeout(() => {
+        fitTerminal();
+      }, 30);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [fitTerminal]);
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return;
+    }
+
+    const closeMenu = () => setContextMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setContextMenu(null);
+      }
+    };
+
+    document.addEventListener("click", closeMenu);
+    document.addEventListener("scroll", closeMenu, true);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeMenu);
+      document.removeEventListener("scroll", closeMenu, true);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [contextMenu]);
 
   function reconnect() {
     const socket = socketRef.current;
@@ -160,7 +351,7 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
 
     if (term) {
       term.clear();
-      term.writeln("[переподключение запрошено]");
+      term.writeln("[запрошено переподключение]");
     }
 
     if (fitAddon) {
@@ -175,8 +366,13 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
     });
   }
 
+  const sshHref = node ? `ssh://${node.username}@${node.host}:${node.port}` : null;
+
   return (
-    <article className="overflow-hidden rounded-[28px] border border-white/40 bg-slate-950/90 shadow-glow">
+    <article
+      ref={paneRef}
+      className="relative overflow-hidden rounded-[28px] border border-white/40 bg-slate-950/90 shadow-glow"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 bg-slate-950/90 px-4 py-3 text-slate-100">
         <div>
           <div className="text-sm font-semibold">{pane.nodeName}</div>
@@ -187,8 +383,44 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
 
         <div className="flex items-center gap-2">
           <StatusBadge status={pane.status} />
+          {sshHref ? (
+            <a
+              href={sshHref}
+              className="rounded-2xl border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800"
+              title="Открыть в терминале ОС"
+              aria-label="Открыть в терминале ОС"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+          {node ? (
+            <button
+              type="button"
+              onClick={() => void copySshCommand()}
+              className="rounded-2xl border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800"
+              title="Скопировать SSH-команду"
+              aria-label="Скопировать SSH-команду"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            className="rounded-2xl border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800"
+            title={isFullscreen ? "Выйти из полноэкранного режима" : "На весь экран"}
+            aria-label={isFullscreen ? "Выйти из полноэкранного режима" : "На весь экран"}
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
           {(pane.status === "closed" || pane.status === "error") && (
-            <button type="button" onClick={reconnect} className="rounded-2xl border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800">
+            <button
+              type="button"
+              onClick={reconnect}
+              className="rounded-2xl border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800"
+              title="Переподключить"
+              aria-label="Переподключить"
+            >
               <RefreshCcw className="h-3.5 w-3.5" />
             </button>
           )}
@@ -196,6 +428,8 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
             type="button"
             onClick={() => closePane(pane.nodeId)}
             className="rounded-2xl border border-slate-700 px-3 py-2 text-xs text-slate-200 transition hover:bg-slate-800"
+            title="Закрыть терминал"
+            aria-label="Закрыть терминал"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -206,7 +440,30 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
         <div className="border-b border-rose-500/20 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">{pane.error}</div>
       ) : null}
 
-      <div ref={hostRef} className="h-[320px] w-full bg-slate-950" />
+      <div ref={hostRef} className="h-[320px] w-full bg-slate-950 outline-none" tabIndex={0} />
+
+      {contextMenu ? (
+        <div
+          className="absolute z-20 min-w-44 rounded-[22px] border border-white/15 bg-white/12 p-2 shadow-[0_18px_48px_rgba(15,23,42,0.38)] backdrop-blur-xl"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => void pasteFromClipboard()}
+            className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm text-slate-100 transition hover:bg-white/12"
+          >
+            <Copy className="h-4 w-4" />
+            Вставить
+          </button>
+        </div>
+      ) : null}
+
+      {toastMessage ? (
+        <div className="pointer-events-none absolute bottom-4 right-4 rounded-full border border-white/15 bg-white/12 px-4 py-2 text-xs font-medium text-slate-100 shadow-[0_16px_40px_rgba(15,23,42,0.3)] backdrop-blur-xl">
+          {toastMessage}
+        </div>
+      ) : null}
     </article>
   );
 }
