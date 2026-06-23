@@ -23,12 +23,17 @@ class SSHService:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    async def run_command(self, node: Node, command: str) -> SSHCommandResult:
+    async def run_command(
+        self,
+        node: Node,
+        command: str,
+        timeout: int | None = None,
+    ) -> SSHCommandResult:
         connection = await self._connect(node)
         try:
             result = await asyncio.wait_for(
                 connection.run(command, check=False),
-                timeout=self._settings.ssh_command_timeout,
+                timeout=timeout or self._settings.ssh_command_timeout,
             )
             return SSHCommandResult(
                 exit_code=result.exit_status,
