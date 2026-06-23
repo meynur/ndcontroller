@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AlertCircle, CheckCircle2, LoaderCircle } from "lucide-react";
 
@@ -11,6 +11,7 @@ import { QuickCommandsPanel } from "./components/quick-commands/QuickCommandsPan
 import { TerminalWorkspace } from "./components/terminals/TerminalWorkspace";
 import { usePolling } from "./hooks/usePolling";
 import { api } from "./services/api";
+import { useMonitoringStore } from "./store/monitoring";
 import { useSelectionStore } from "./store/selection";
 import { useTerminalStore } from "./store/terminal";
 import { useUIStore } from "./store/ui";
@@ -29,10 +30,17 @@ type BannerState = {
   message: string;
 } | null;
 
+const NodeStatsModal = lazy(async () => {
+  const module = await import("./components/dashboard/NodeStatsModal");
+  return { default: module.NodeStatsModal };
+});
+
 export default function App() {
   const selectedNodeIds = useSelectionStore((state) => state.selectedNodeIds);
   const toggleNode = useSelectionStore((state) => state.toggleNode);
   const clearSelection = useSelectionStore((state) => state.clearSelection);
+  const nodeStatuses = useMonitoringStore((state) => state.statuses);
+  const setStatuses = useMonitoringStore((state) => state.setStatuses);
   const panes = useTerminalStore((state) => state.panes);
   const openPane = useTerminalStore((state) => state.openPane);
 
@@ -53,6 +61,7 @@ export default function App() {
   const [quickCommands, setQuickCommands] = useState<QuickCommand[]>([]);
   const [quickCommandDraft, setQuickCommandDraft] = useState<QuickCommand | null>(null);
   const [bulkJobs, setBulkJobs] = useState<BulkJob[]>([]);
+  const [statsNodeId, setStatsNodeId] = useState<number | null>(null);
   const [manualCommand, setManualCommand] = useState("");
   const [loadingNodes, setLoadingNodes] = useState(true);
   const [savingNode, setSavingNode] = useState(false);
@@ -100,12 +109,22 @@ export default function App() {
     }
   }, [showBanner]);
 
+  const refreshNodeStatuses = useCallback(async () => {
+    try {
+      const data = await api.getNodeStatuses();
+      setStatuses(data);
+    } catch {
+      // Дашборд остается рабочим даже если мониторинг временно недоступен.
+    }
+  }, [setStatuses]);
+
   useEffect(() => {
-    void Promise.all([refreshNodes(), refreshQuickCommands(), refreshBulkJobs()]);
-  }, [refreshBulkJobs, refreshNodes, refreshQuickCommands]);
+    void Promise.all([refreshNodes(), refreshQuickCommands(), refreshBulkJobs(), refreshNodeStatuses()]);
+  }, [refreshBulkJobs, refreshNodeStatuses, refreshNodes, refreshQuickCommands]);
 
   const hasActiveJobs = bulkJobs.some((job) => job.status === "pending" || job.status === "running");
   usePolling(() => void refreshBulkJobs(), 3500, hasActiveJobs);
+  usePolling(() => void refreshNodeStatuses(), 30000, true);
 
   useEffect(() => {
     if (!nodeModalOpen) {
@@ -147,6 +166,7 @@ export default function App() {
       }
       closeNodeModal();
       await refreshNodes();
+      await refreshNodeStatuses();
     } catch (error) {
       showBanner("error", resolveErrorMessage(error, "Не удалось сохранить ноду"));
     } finally {
@@ -183,6 +203,7 @@ export default function App() {
       await api.deleteNode(nodeId);
       showBanner("success", "Нода удалена");
       await refreshNodes();
+      await refreshNodeStatuses();
     } catch (error) {
       showBanner("error", resolveErrorMessage(error, "Не удалось удалить ноду"));
     }
@@ -200,6 +221,25 @@ export default function App() {
       await refreshQuickCommands();
     } catch (error) {
       showBanner("error", resolveErrorMessage(error, "Не удалось удалить быструю команду"));
+    }
+  }
+
+  async function handleTogglePin(node: NodeSummary) {
+    const nextPinnedState = !node.is_pinned;
+
+    setNodes((current) =>
+      current.map((item) => (item.id === node.id ? { ...item, is_pinned: nextPinnedState } : item)),
+    );
+
+    try {
+      const updated = await api.updateNode(node.id, { is_pinned: nextPinnedState });
+      setNodes((current) => current.map((item) => (item.id === node.id ? updated : item)));
+      showBanner("success", nextPinnedState ? "Нода закреплена" : "Нода откреплена");
+    } catch (error) {
+      setNodes((current) =>
+        current.map((item) => (item.id === node.id ? { ...item, is_pinned: node.is_pinned } : item)),
+      );
+      showBanner("error", resolveErrorMessage(error, "Не удалось изменить закрепление ноды"));
     }
   }
 
@@ -250,6 +290,30 @@ export default function App() {
     });
   }
 
+  function handleOpenStats(node: NodeSummary) {
+    setStatsNodeId(node.id);
+  }
+
+  function handleCloseStats() {
+    setStatsNodeId(null);
+  }
+
+  const sortedNodes = useMemo(
+    () =>
+      [...nodes].sort((left, right) => {
+        if (left.is_pinned !== right.is_pinned) {
+          return Number(right.is_pinned) - Number(left.is_pinned);
+        }
+        return right.created_at.localeCompare(left.created_at);
+      }),
+    [nodes],
+  );
+
+  const activeStatsNode = useMemo(
+    () => sortedNodes.find((node) => node.id === statsNodeId) ?? null,
+    [sortedNodes, statsNodeId],
+  );
+
   return (
     <AppShell selectedCount={selectedNodeIds.length} totalNodes={nodes.length} openTerminals={panes.length}>
       <Banner banner={banner} />
@@ -259,10 +323,13 @@ export default function App() {
           <LoadingState />
         ) : (
           <NodeGrid
-            nodes={nodes}
+            nodes={sortedNodes}
+            nodeStatuses={nodeStatuses}
             selectedNodeIds={selectedNodeIds}
             onCreate={openNodeCreateModal}
             onToggleSelect={toggleNode}
+            onTogglePin={handleTogglePin}
+            onOpenStats={handleOpenStats}
             onOpenTerminal={handleOpenTerminal}
             onEdit={openNodeEditModal}
             onDelete={handleDeleteNode}
@@ -311,6 +378,16 @@ export default function App() {
         onClose={closeQuickCommandModal}
         onSubmit={handleQuickCommandSubmit}
       />
+
+      {activeStatsNode ? (
+        <Suspense fallback={<StatsModalFallback onClose={handleCloseStats} />}>
+          <NodeStatsModal
+            open={activeStatsNode != null}
+            node={activeStatsNode}
+            onClose={handleCloseStats}
+          />
+        </Suspense>
+      ) : null}
     </AppShell>
   );
 }
@@ -337,7 +414,9 @@ function Banner({ banner }: { banner: BannerState }) {
       : "border-rose-200 bg-rose-50/90 text-rose-700";
 
   return (
-    <div className={`glass-panel fixed left-1/2 top-5 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border px-5 py-3 ${toneClass}`}>
+    <div
+      className={`glass-panel fixed left-1/2 top-5 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border px-5 py-3 ${toneClass}`}
+    >
       {banner.tone === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
       <span className="text-sm font-medium">{banner.message}</span>
     </div>
@@ -349,4 +428,36 @@ function resolveErrorMessage(error: unknown, fallback: string): string {
     return error.message;
   }
   return fallback;
+}
+
+function StatsModalFallback({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/28 px-4 py-6 backdrop-blur-md">
+      <div className="w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/20 bg-white/50 shadow-[0_40px_120px_rgba(15,23,42,0.24)] backdrop-blur-xl">
+        <div className="border-b border-white/20 bg-white/18 px-6 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-3">
+              <div className="h-4 w-40 animate-pulse rounded-full bg-white/45" />
+              <div className="h-8 w-72 animate-pulse rounded-full bg-white/50" />
+              <div className="h-4 w-56 animate-pulse rounded-full bg-white/40" />
+            </div>
+            <button type="button" onClick={onClose} className="glass-button">
+              Закрыть
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-5 px-6 py-6 xl:grid-cols-2">
+          <div className="rounded-[28px] border border-white/20 bg-white/10 px-4 py-4 shadow-sm backdrop-blur-xl">
+            <div className="mb-4 h-5 w-24 animate-pulse rounded-full bg-white/35" />
+            <div className="h-56 animate-pulse rounded-[24px] bg-white/20" />
+          </div>
+          <div className="rounded-[28px] border border-white/20 bg-white/10 px-4 py-4 shadow-sm backdrop-blur-xl">
+            <div className="mb-4 h-5 w-24 animate-pulse rounded-full bg-white/35" />
+            <div className="h-56 animate-pulse rounded-[24px] bg-white/20" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
