@@ -1,0 +1,80 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: "${DATABASE_URL:-sqlite+aiosqlite:///./data/node_controller.db}"
+      APP_SECRET_KEY: "${APP_SECRET_KEY}"
+      ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:8080","http://127.0.0.1:8080"]}'
+      SSH_CONNECT_TIMEOUT: "${SSH_CONNECT_TIMEOUT:-10}"
+      SSH_COMMAND_TIMEOUT: "${SSH_COMMAND_TIMEOUT:-120}"
+      SSH_DISABLE_KNOWN_HOSTS: "${SSH_DISABLE_KNOWN_HOSTS:-true}"
+      MAX_BULK_JOB_CONCURRENCY: "${MAX_BULK_JOB_CONCURRENCY:-5}"
+      DEFAULT_TERMINAL_COLS: "${DEFAULT_TERMINAL_COLS:-120}"
+      DEFAULT_TERMINAL_ROWS: "${DEFAULT_TERMINAL_ROWS:-32}"
+    volumes:
+      - backend_data:/app/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    environment:
+      DOMAIN: "${DOMAIN}"
+      ACME_EMAIL: "${ACME_EMAIL}"
+      CADDY_BASIC_AUTH_USER: "${CADDY_BASIC_AUTH_USER}"
+      CADDY_BASIC_AUTH_HASH: "${CADDY_BASIC_AUTH_HASH}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+      - edge
+
+volumes:
+  backend_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge
+  edge:
+    driver: bridge
