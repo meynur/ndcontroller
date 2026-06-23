@@ -4,6 +4,8 @@ import type {
   ExecuteCommandPayload,
   NodeDetail,
   NodePayload,
+  NodeStatsResponse,
+  NodeStatuses,
   NodeSummary,
   NodeUpdatePayload,
   QuickCommand,
@@ -36,6 +38,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   listNodes: () => request<NodeSummary[]>("/nodes"),
   getNode: (nodeId: number) => request<NodeDetail>(`/nodes/${nodeId}`),
+  getNodeStatuses: () => request<NodeStatuses>("/nodes/statuses"),
+  getNodeStats: (nodeId: number) => request<NodeStatsResponse>(`/nodes/${nodeId}/stats`),
   createNode: (payload: NodePayload) =>
     request<NodeDetail>("/nodes", {
       method: "POST",
