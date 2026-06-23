@@ -5,8 +5,8 @@ import { AlertCircle, CheckCircle2, LoaderCircle } from "lucide-react";
 import { NodeFormModal } from "./components/dashboard/NodeFormModal";
 import { NodeGrid } from "./components/dashboard/NodeGrid";
 import { AppShell } from "./components/layout/AppShell";
-import { QuickCommandFormModal } from "./components/quick-commands/QuickCommandFormModal";
 import { BulkResultsPanel } from "./components/quick-commands/BulkResultsPanel";
+import { QuickCommandFormModal } from "./components/quick-commands/QuickCommandFormModal";
 import { QuickCommandsPanel } from "./components/quick-commands/QuickCommandsPanel";
 import { TerminalWorkspace } from "./components/terminals/TerminalWorkspace";
 import { usePolling } from "./hooks/usePolling";
@@ -76,7 +76,7 @@ export default function App() {
       const data = await api.listNodes();
       setNodes(data);
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to load nodes"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось загрузить список нод"));
     } finally {
       setLoadingNodes(false);
     }
@@ -87,7 +87,7 @@ export default function App() {
       const data = await api.listQuickCommands();
       setQuickCommands(data);
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to load quick commands"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось загрузить быстрые команды"));
     }
   }, [showBanner]);
 
@@ -96,7 +96,7 @@ export default function App() {
       const data = await api.listBulkJobs();
       setBulkJobs(data);
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to load bulk jobs"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось загрузить историю задач"));
     }
   }, [showBanner]);
 
@@ -117,7 +117,7 @@ export default function App() {
       void api
         .getNode(editingNodeId)
         .then(setNodeDraft)
-        .catch((error) => showBanner("error", resolveErrorMessage(error, "Failed to load node")));
+        .catch((error) => showBanner("error", resolveErrorMessage(error, "Не удалось загрузить ноду")));
     }
   }, [editingNodeId, nodeModalMode, nodeModalOpen, showBanner]);
 
@@ -131,7 +131,7 @@ export default function App() {
       void api
         .getQuickCommand(editingQuickCommandId)
         .then(setQuickCommandDraft)
-        .catch((error) => showBanner("error", resolveErrorMessage(error, "Failed to load quick command")));
+        .catch((error) => showBanner("error", resolveErrorMessage(error, "Не удалось загрузить быструю команду")));
     }
   }, [editingQuickCommandId, quickCommandModalOpen, showBanner]);
 
@@ -140,15 +140,15 @@ export default function App() {
     try {
       if (nodeModalMode === "create") {
         await api.createNode(payload);
-        showBanner("success", "Node saved");
+        showBanner("success", "Нода сохранена");
       } else if (editingNodeId != null) {
         await api.updateNode(editingNodeId, payload);
-        showBanner("success", "Node updated");
+        showBanner("success", "Нода обновлена");
       }
       closeNodeModal();
       await refreshNodes();
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to save node"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось сохранить ноду"));
     } finally {
       setSavingNode(false);
     }
@@ -159,53 +159,53 @@ export default function App() {
     try {
       if (editingQuickCommandId == null) {
         await api.createQuickCommand(payload);
-        showBanner("success", "Quick command saved");
+        showBanner("success", "Быстрая команда сохранена");
       } else {
         await api.updateQuickCommand(editingQuickCommandId, payload);
-        showBanner("success", "Quick command updated");
+        showBanner("success", "Быстрая команда обновлена");
       }
       closeQuickCommandModal();
       await refreshQuickCommands();
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to save quick command"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось сохранить быструю команду"));
     } finally {
       setSavingQuickCommand(false);
     }
   }
 
   async function handleDeleteNode(nodeId: number) {
-    const confirmed = window.confirm("Delete this node?");
+    const confirmed = window.confirm("Удалить эту ноду?");
     if (!confirmed) {
       return;
     }
 
     try {
       await api.deleteNode(nodeId);
-      showBanner("success", "Node deleted");
+      showBanner("success", "Нода удалена");
       await refreshNodes();
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to delete node"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось удалить ноду"));
     }
   }
 
   async function handleDeleteQuickCommand(commandId: number) {
-    const confirmed = window.confirm("Delete this quick command?");
+    const confirmed = window.confirm("Удалить эту быструю команду?");
     if (!confirmed) {
       return;
     }
 
     try {
       await api.deleteQuickCommand(commandId);
-      showBanner("success", "Quick command deleted");
+      showBanner("success", "Быстрая команда удалена");
       await refreshQuickCommands();
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to delete quick command"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось удалить быструю команду"));
     }
   }
 
   async function runBulkJob(payload: BulkJobPayload) {
     if (selectedNodeIds.length === 0) {
-      showBanner("error", "Select at least one node first");
+      showBanner("error", "Сначала выбери хотя бы одну ноду");
       return;
     }
 
@@ -213,9 +213,9 @@ export default function App() {
     try {
       const createdJob = await api.createBulkJob(payload);
       setBulkJobs((current) => [createdJob, ...current]);
-      showBanner("success", "Bulk job started");
+      showBanner("success", "Массовая задача запущена");
     } catch (error) {
-      showBanner("error", resolveErrorMessage(error, "Failed to run bulk job"));
+      showBanner("error", resolveErrorMessage(error, "Не удалось запустить массовую задачу"));
     } finally {
       setRunningBulkCommand(false);
     }
@@ -228,7 +228,7 @@ export default function App() {
     }
 
     await runBulkJob({
-      title: "Manual command",
+      title: "Ручная команда",
       node_ids: selectedNodeIds,
       command,
     });
@@ -290,7 +290,7 @@ export default function App() {
       <div className="fixed bottom-5 right-5 z-40">
         {selectedNodeIds.length > 0 ? (
           <button type="button" onClick={clearSelection} className="glass-button">
-            Clear Selection ({selectedNodeIds.length})
+            Снять выделение ({selectedNodeIds.length})
           </button>
         ) : null}
       </div>
@@ -320,7 +320,7 @@ function LoadingState() {
     <div className="glass-panel flex min-h-[240px] items-center justify-center rounded-[32px]">
       <div className="inline-flex items-center gap-3 text-slate-600">
         <LoaderCircle className="h-5 w-5 animate-spin" />
-        Loading dashboard...
+        Загружаем дашборд...
       </div>
     </div>
   );
