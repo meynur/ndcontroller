@@ -4,6 +4,7 @@ export type NodeSummary = {
   host: string;
   port: number;
   username: string;
+  is_pinned: boolean;
   note: string | null;
   has_password: boolean;
   created_at: string;
@@ -20,10 +21,27 @@ export type NodePayload = {
   port: number;
   username: string;
   password: string;
+  is_pinned: boolean;
   note: string | null;
 };
 
 export type NodeUpdatePayload = Partial<NodePayload>;
+
+export type NodeStatus = "online" | "offline";
+
+export type NodeStatuses = Record<number, NodeStatus>;
+
+export type NodeMetricPoint = {
+  timestamp: string;
+  cpu_percent: number | null;
+  ram_percent: number | null;
+};
+
+export type NodeStatsResponse = {
+  node_id: number;
+  status: NodeStatus;
+  metrics: NodeMetricPoint[];
+};
 
 export type QuickCommand = {
   id: number;
