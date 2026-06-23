@@ -8,6 +8,7 @@ from app.api.routes_terminal import router as terminal_router
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal, init_db
 from app.services.bulk_exec_service import BulkExecutionService
+from app.services.monitoring_service import MonitoringService
 from app.services.ssh_service import SSHService
 from app.services.terminal_manager import TerminalManager
 
@@ -25,6 +26,11 @@ async def lifespan(app: FastAPI):
         ssh_service=ssh_service,
         max_concurrency=settings.max_bulk_job_concurrency,
     )
+    monitoring_service = MonitoringService(
+        session_factory=AsyncSessionLocal,
+        ssh_service=ssh_service,
+        settings=settings,
+    )
     terminal_manager = TerminalManager(
         session_factory=AsyncSessionLocal,
         ssh_service=ssh_service,
@@ -34,9 +40,13 @@ async def lifespan(app: FastAPI):
 
     app.state.ssh_service = ssh_service
     app.state.bulk_execution_service = bulk_execution_service
+    app.state.monitoring_service = monitoring_service
     app.state.terminal_manager = terminal_manager
+    monitoring_service.start()
 
     yield
+
+    await monitoring_service.stop()
 
 
 app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
