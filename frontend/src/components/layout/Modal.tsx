@@ -18,7 +18,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
       <div className="glass-panel-strong w-full max-w-2xl px-6 py-6">
         <div className="mb-5 flex items-center justify-between">
           <h3 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h3>
-          <button type="button" onClick={onClose} className="glass-button h-10 w-10 rounded-2xl p-0">
+          <button type="button" onClick={onClose} aria-label="Закрыть окно" className="glass-button h-10 w-10 rounded-2xl p-0">
             <X className="h-4 w-4" />
           </button>
         </div>
