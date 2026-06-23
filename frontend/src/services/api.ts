@@ -23,7 +23,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request failed with status ${response.status}`);
+    throw new Error(text || `Запрос завершился ошибкой (статус ${response.status})`);
   }
 
   if (response.status === 204) {
