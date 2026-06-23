@@ -21,25 +21,25 @@ export function BulkResultsPanel({ jobs, nodes }: BulkResultsPanelProps) {
 
   return (
     <SectionCard
-      title="Bulk Activity"
-      description="Track background execution for saved and ad-hoc commands, including stdout and stderr per node."
+      title="История выполнения"
+      description="Следи за выполнением сохраненных и ручных команд, включая вывод и ошибки по каждой ноде."
     >
       <div className="space-y-4">
         {jobs.length === 0 ? (
           <div className="rounded-[28px] border border-dashed border-white/50 bg-white/30 px-5 py-10 text-sm text-slate-600">
-            No bulk jobs have been launched yet.
+            Массовые задачи пока не запускались.
           </div>
         ) : (
           jobs.map((job) => (
             <article key={job.id} className="rounded-[28px] border border-white/45 bg-white/40 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">{job.title || "Bulk command"}</div>
+                  <div className="text-sm font-semibold text-slate-900">{job.title || "Массовая команда"}</div>
                   <p className="mt-1 break-all font-mono text-xs text-slate-600">{job.command}</p>
                 </div>
                 <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${jobStatusStyles[job.status]}`}>
                   {renderStatusIcon(job.status)}
-                  {job.status}
+                  {translateJobStatus(job.status)}
                 </span>
               </div>
 
@@ -49,18 +49,18 @@ export function BulkResultsPanel({ jobs, nodes }: BulkResultsPanelProps) {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="text-sm font-medium text-slate-800">
-                          {nodeMap.get(result.node_id)?.name ?? `Node #${result.node_id}`}
+                          {nodeMap.get(result.node_id)?.name ?? `Нода #${result.node_id}`}
                         </div>
-                        <div className="text-xs text-slate-500">{nodeMap.get(result.node_id)?.host ?? "Unknown host"}</div>
+                        <div className="text-xs text-slate-500">{nodeMap.get(result.node_id)?.host ?? "Неизвестный хост"}</div>
                       </div>
                       <span className="rounded-full border border-white/50 bg-white/70 px-3 py-1 text-xs font-medium capitalize text-slate-600">
-                        {result.status}
+                        {translateResultStatus(result.status)}
                       </span>
                     </div>
 
                     <div className="mt-3 grid gap-3 xl:grid-cols-2">
-                      <OutputBlock title="stdout" value={result.stdout} tone="emerald" />
-                      <OutputBlock title="stderr" value={result.stderr} tone="rose" />
+                      <OutputBlock title="Вывод" value={result.stdout} tone="emerald" />
+                      <OutputBlock title="Ошибки" value={result.stderr} tone="rose" />
                     </div>
                   </div>
                 ))}
@@ -89,6 +89,21 @@ function renderStatusIcon(status: BulkJob["status"]) {
   return <OctagonAlert className="h-3.5 w-3.5" />;
 }
 
+function translateJobStatus(status: BulkJob["status"]) {
+  if (status === "pending") return "ожидание";
+  if (status === "running") return "выполняется";
+  if (status === "completed") return "успешно";
+  if (status === "partial") return "частично";
+  return "ошибка";
+}
+
+function translateResultStatus(status: BulkJob["results"][number]["status"]) {
+  if (status === "pending") return "ожидание";
+  if (status === "running") return "выполняется";
+  if (status === "success") return "успешно";
+  return "ошибка";
+}
+
 function OutputBlock({
   title,
   value,
@@ -102,7 +117,7 @@ function OutputBlock({
     <div className={`rounded-2xl border px-3 py-3 ${tone === "emerald" ? "border-emerald-100 bg-emerald-50/80" : "border-rose-100 bg-rose-50/80"}`}>
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{title}</div>
       <pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-slate-700">
-        {value?.trim() ? value : "No output"}
+        {value?.trim() ? value : "Нет вывода"}
       </pre>
     </div>
   );
