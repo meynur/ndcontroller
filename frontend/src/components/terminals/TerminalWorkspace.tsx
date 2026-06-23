@@ -15,12 +15,12 @@ export function TerminalWorkspace({ nodes }: TerminalWorkspaceProps) {
 
   return (
     <SectionCard
-      title="Terminal Workspace"
-      description="Open up to four side-by-side browser terminals and monitor several machines at once."
+      title="Терминалы"
+      description="Открывай до четырех терминалов рядом и следи сразу за несколькими серверами."
       action={
         <div className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/60 px-3 py-2 text-xs font-medium text-slate-600">
           <LayoutGrid className="h-4 w-4" />
-          {panes.length}/4 panes
+          {panes.length}/4 панелей
         </div>
       }
       className="min-h-[420px]"
@@ -28,9 +28,9 @@ export function TerminalWorkspace({ nodes }: TerminalWorkspaceProps) {
       {panes.length === 0 ? (
         <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[30px] border border-dashed border-white/50 bg-white/30 text-center text-slate-600">
           <MonitorX className="h-10 w-10 text-slate-400" />
-          <div className="mt-4 text-lg font-medium text-slate-800">No terminals open</div>
+          <div className="mt-4 text-lg font-medium text-slate-800">Нет открытых терминалов</div>
           <p className="mt-2 max-w-lg text-sm">
-            Use the “Open Console” action on any node card to launch a live WebSSH session here.
+            Используй кнопку «Открыть консоль» на карточке ноды, чтобы запустить живую WebSSH-сессию здесь.
           </p>
         </div>
       ) : (
