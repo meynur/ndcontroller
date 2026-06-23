@@ -25,12 +25,12 @@ export function NodeGrid({
 }: NodeGridProps) {
   return (
     <SectionCard
-      title="Dashboard"
-      description="A clean grid of saved nodes with quick selection, notes, and one-click terminal access."
+      title="Ноды"
+      description="Сетка сохраненных серверов с быстрым выбором, заметками и мгновенным доступом в терминал."
       action={
         <button type="button" onClick={onCreate} className="glass-button">
           <Plus className="mr-2 h-4 w-4" />
-          Add Node
+          Добавить ноду
         </button>
       }
     >
@@ -58,8 +58,8 @@ export function NodeGrid({
 function EmptyState() {
   return (
     <div className="rounded-[28px] border border-dashed border-white/50 bg-white/35 px-6 py-16 text-center text-slate-600">
-      <div className="text-lg font-medium text-slate-800">No nodes yet</div>
-      <p className="mt-2 text-sm">Add your first Linux server to start managing commands and web terminals.</p>
+      <div className="text-lg font-medium text-slate-800">Нод пока нет</div>
+      <p className="mt-2 text-sm">Добавь первый Linux-сервер, чтобы управлять командами и веб-терминалами.</p>
     </div>
   );
 }
