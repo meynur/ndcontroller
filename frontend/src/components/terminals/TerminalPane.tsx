@@ -89,20 +89,20 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
           }
 
           if (message.type === "error") {
-            setPaneStatus(pane.nodeId, "error", message.message ?? "Unknown terminal error");
-            term.writeln(`\r\n[error] ${message.message ?? "Unknown terminal error"}`);
+            setPaneStatus(pane.nodeId, "error", message.message ?? "Неизвестная ошибка терминала");
+            term.writeln(`\r\n[ошибка] ${message.message ?? "Неизвестная ошибка терминала"}`);
             return;
           }
 
           if (message.type === "exit") {
             setPaneStatus(pane.nodeId, "closed");
-            term.writeln(`\r\n[session closed] exit code ${message.data ?? "0"}`);
+            term.writeln(`\r\n[сеанс завершен] код выхода ${message.data ?? "0"}`);
           }
         };
 
         socket.onerror = () => {
-          setPaneStatus(pane.nodeId, "error", "WebSocket connection failed");
-          term.writeln("\r\n[error] WebSocket connection failed");
+          setPaneStatus(pane.nodeId, "error", "Не удалось подключиться к терминалу по веб-сокету");
+          term.writeln("\r\n[ошибка] Не удалось подключиться к терминалу по веб-сокету");
         };
 
         socket.onclose = () => {
@@ -126,7 +126,7 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
         if (!active) {
           return;
         }
-        const message = error instanceof Error ? error.message : "Failed to initialize terminal";
+        const message = error instanceof Error ? error.message : "Не удалось инициализировать терминал";
         setPaneStatus(pane.nodeId, "error", message);
       }
     })();
@@ -160,7 +160,7 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
 
     if (term) {
       term.clear();
-      term.writeln("[reconnect requested]");
+      term.writeln("[переподключение запрошено]");
     }
 
     if (fitAddon) {
@@ -181,7 +181,7 @@ export function TerminalPane({ pane, node }: TerminalPaneProps) {
         <div>
           <div className="text-sm font-semibold">{pane.nodeName}</div>
           <div className="text-xs text-slate-400">
-            {node ? `${node.username}@${node.host}:${node.port}` : "Saved session"}
+            {node ? `${node.username}@${node.host}:${node.port}` : "Сохраненная сессия"}
           </div>
         </div>
 
@@ -226,23 +226,23 @@ function StatusBadge({ status }: { status: TerminalPaneState["status"] }) {
     return (
       <span className="inline-flex items-center gap-2 rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-200">
         <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-        Connecting
+        Подключение
       </span>
     );
   }
 
   if (status === "connected") {
-    return <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">Live</span>;
+    return <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">Онлайн</span>;
   }
 
   if (status === "error") {
     return (
       <span className="inline-flex items-center gap-2 rounded-full bg-rose-400/10 px-3 py-1 text-xs font-medium text-rose-200">
         <WifiOff className="h-3.5 w-3.5" />
-        Error
+        Ошибка
       </span>
     );
   }
 
-  return <span className="rounded-full bg-slate-700/70 px-3 py-1 text-xs font-medium text-slate-200">Closed</span>;
+  return <span className="rounded-full bg-slate-700/70 px-3 py-1 text-xs font-medium text-slate-200">Закрыт</span>;
 }
