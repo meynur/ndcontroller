@@ -54,10 +54,10 @@ export function NodeFormModal({ open, mode, node, loading, onClose, onSubmit }: 
   }
 
   return (
-    <Modal open={open} title={mode === "create" ? "Add Node" : "Edit Node"} onClose={onClose}>
+    <Modal open={open} title={mode === "create" ? "Добавить ноду" : "Редактировать ноду"} onClose={onClose}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name">
+          <Field label="Название">
             <input
               className="glass-input"
               value={form.name}
@@ -66,7 +66,7 @@ export function NodeFormModal({ open, mode, node, loading, onClose, onSubmit }: 
               required
             />
           </Field>
-          <Field label="IP / Host">
+          <Field label="IP / Хост">
             <input
               className="glass-input"
               value={form.host}
@@ -75,7 +75,7 @@ export function NodeFormModal({ open, mode, node, loading, onClose, onSubmit }: 
               required
             />
           </Field>
-          <Field label="Username">
+          <Field label="Логин">
             <input
               className="glass-input"
               value={form.username}
@@ -84,7 +84,7 @@ export function NodeFormModal({ open, mode, node, loading, onClose, onSubmit }: 
               required
             />
           </Field>
-          <Field label="Port">
+          <Field label="Порт">
             <input
               className="glass-input"
               type="number"
@@ -97,33 +97,33 @@ export function NodeFormModal({ open, mode, node, loading, onClose, onSubmit }: 
           </Field>
         </div>
 
-        <Field label="Password">
+        <Field label="Пароль">
           <input
             className="glass-input"
             type="password"
             value={form.password}
             onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-            placeholder="Saved for automatic login"
+            placeholder="Сохраняется для автоматического входа"
             required
           />
         </Field>
 
-        <Field label="Note">
+        <Field label="Заметка">
           <textarea
             className="glass-input min-h-28 resize-y"
             value={form.note ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))}
-            placeholder="What runs here, deployment details, maintenance notes..."
+            placeholder="Что запущено на сервере, детали деплоя, служебные пометки..."
           />
         </Field>
 
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="glass-button">
-            Cancel
+            Отмена
           </button>
           <button type="submit" disabled={loading} className="glass-button bg-cyan-500/90 text-white hover:bg-cyan-500">
             {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {mode === "create" ? "Save Node" : "Update Node"}
+            {mode === "create" ? "Сохранить ноду" : "Обновить ноду"}
           </button>
         </div>
       </form>
