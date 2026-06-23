@@ -53,21 +53,21 @@ export function QuickCommandFormModal({
   }
 
   return (
-    <Modal open={open} title={command ? "Edit Quick Command" : "Create Quick Command"} onClose={onClose}>
+    <Modal open={open} title={command ? "Редактировать быструю команду" : "Создать быструю команду"} onClose={onClose}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">Title</span>
+          <span className="text-sm font-medium text-slate-600">Название</span>
           <input
             className="glass-input"
             value={form.name}
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Upgrade packages"
+            placeholder="Обновить пакеты"
             required
           />
         </label>
 
         <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">Command</span>
+          <span className="text-sm font-medium text-slate-600">Команда</span>
           <textarea
             className="glass-input min-h-32 resize-y font-mono text-xs"
             value={form.command}
@@ -78,22 +78,22 @@ export function QuickCommandFormModal({
         </label>
 
         <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-600">Description</span>
+          <span className="text-sm font-medium text-slate-600">Описание</span>
           <textarea
             className="glass-input min-h-24 resize-y"
             value={form.description ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-            placeholder="Optional note about what the command affects"
+            placeholder="Необязательная заметка о том, что делает команда"
           />
         </label>
 
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="glass-button">
-            Cancel
+            Отмена
           </button>
           <button type="submit" disabled={loading} className="glass-button bg-cyan-500/90 text-white hover:bg-cyan-500">
             {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Command
+            Сохранить команду
           </button>
         </div>
       </form>
