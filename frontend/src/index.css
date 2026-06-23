@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0f172a;
+  background: #eff6ff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "SF Pro Display", "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.glass-panel {
+  @apply rounded-3xl border border-white/40 bg-white/50 shadow-glass backdrop-blur-md;
+}
+
+.glass-panel-strong {
+  @apply rounded-3xl border border-white/50 bg-white/65 shadow-glow backdrop-blur-xl;
+}
+
+.glass-button {
+  @apply inline-flex items-center justify-center rounded-2xl border border-white/50 bg-white/60 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:bg-white/75;
+}
+
+.glass-input {
+  @apply w-full rounded-2xl border border-white/40 bg-white/50 px-4 py-3 text-sm text-slate-800 outline-none backdrop-blur-md transition placeholder:text-slate-400 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-200/70;
+}
+
+.xterm {
+  padding: 12px;
+}
