@@ -30,12 +30,12 @@ export function QuickCommandsPanel({
 }: QuickCommandsPanelProps) {
   return (
     <SectionCard
-      title="Quick Commands"
-      description="Save bash snippets once, then launch them across selected nodes in the background."
+      title="Быстрые команды"
+      description="Сохраняй bash-команды один раз и запускай их по выбранным нодам в фоне."
       action={
         <button type="button" onClick={onCreate} className="glass-button">
           <Plus className="mr-2 h-4 w-4" />
-          Add Command
+          Добавить команду
         </button>
       }
     >
@@ -43,13 +43,13 @@ export function QuickCommandsPanel({
         <div className="rounded-[28px] border border-white/45 bg-white/40 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-medium text-slate-800">Manual broadcast</div>
+              <div className="text-sm font-medium text-slate-800">Ручной запуск</div>
               <p className="mt-1 text-sm text-slate-600">
-                Send an ad-hoc command to {selectedCount} selected node{selectedCount === 1 ? "" : "s"}.
+                Отправь произвольную команду на {selectedNodeLabel(selectedCount)}.
               </p>
             </div>
             <span className="rounded-full border border-white/50 bg-white/60 px-3 py-1 text-xs font-medium text-slate-600">
-              {selectedCount} selected
+              Выбрано: {selectedCount}
             </span>
           </div>
 
@@ -68,7 +68,7 @@ export function QuickCommandsPanel({
               className="glass-button bg-cyan-500/90 text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}
-              Run on Selection
+              Запустить на выбранных
             </button>
           </div>
         </div>
@@ -76,7 +76,7 @@ export function QuickCommandsPanel({
         <div className="space-y-3">
           {commands.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-white/50 bg-white/30 px-5 py-10 text-sm text-slate-600">
-              No saved quick commands yet.
+              Сохраненных быстрых команд пока нет.
             </div>
           ) : (
             commands.map((command) => (
@@ -108,7 +108,7 @@ export function QuickCommandsPanel({
                     className="glass-button bg-white/70 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Play className="mr-2 h-4 w-4" />
-                    Run Saved Command
+                    Запустить команду
                   </button>
                 </div>
               </article>
@@ -118,4 +118,14 @@ export function QuickCommandsPanel({
       </div>
     </SectionCard>
   );
+}
+
+function selectedNodeLabel(count: number) {
+  if (count === 1) {
+    return "1 выбранную ноду";
+  }
+  if (count >= 2 && count <= 4) {
+    return `${count} выбранные ноды`;
+  }
+  return `${count} выбранных нод`;
 }
