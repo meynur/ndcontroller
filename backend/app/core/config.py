@@ -20,9 +20,15 @@ class Settings(BaseSettings):
     ssh_command_timeout: int = 120
     ssh_disable_known_hosts: bool = True
     ssh_known_hosts_file: str | None = None
+    monitoring_interval_seconds: int = 60
+    monitoring_max_points: int = 30
+    monitoring_command_timeout: int = 15
+    monitoring_max_concurrency: int = 5
     max_bulk_job_concurrency: int = 5
     default_terminal_cols: int = 120
     default_terminal_rows: int = 32
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
