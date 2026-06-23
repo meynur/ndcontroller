@@ -9,7 +9,9 @@ from app.schemas.node import NodeCreate, NodeDetail, NodeSummary, NodeUpdate
 class NodeService:
     @staticmethod
     async def list_nodes(session: AsyncSession) -> list[NodeSummary]:
-        result = await session.execute(select(Node).order_by(Node.created_at.desc(), Node.id.desc()))
+        result = await session.execute(
+            select(Node).order_by(Node.is_pinned.desc(), Node.created_at.desc(), Node.id.desc())
+        )
         nodes = result.scalars().all()
         return [NodeService._to_summary(node) for node in nodes]
 
@@ -20,6 +22,7 @@ class NodeService:
             host=payload.host,
             port=payload.port,
             username=payload.username,
+            is_pinned=payload.is_pinned,
             password_encrypted=encrypt_secret(payload.password),
             note=payload.note,
         )
@@ -81,6 +84,7 @@ class NodeService:
             host=node.host,
             port=node.port,
             username=node.username,
+            is_pinned=node.is_pinned,
             note=node.note,
             has_password=bool(node.password_encrypted),
             created_at=node.created_at,
