@@ -31,7 +31,7 @@ export function NodeCard({
       <div className="relative flex h-full flex-col gap-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Node</div>
+            <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Нода</div>
             <h3 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">{node.name}</h3>
             <p className="mt-1 text-sm text-slate-600">
               {node.host}:{node.port}
@@ -45,23 +45,25 @@ export function NodeCard({
               type="checkbox"
               className="h-4 w-4 rounded border-slate-300 text-cyan-500 focus:ring-cyan-300"
             />
-            Selected
+            Выбрана
           </label>
         </div>
 
         <div className="rounded-2xl border border-white/50 bg-white/45 px-4 py-3">
-          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Access</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Доступ</div>
           <div className="mt-2 text-sm text-slate-700">{node.username}@{node.host}</div>
         </div>
 
         <div className="min-h-20 rounded-2xl border border-white/50 bg-white/40 px-4 py-3 text-sm leading-6 text-slate-600">
-          {node.note?.trim() ? node.note : "No notes yet. Add a short reminder, role, or deployment hint."}
+          {node.note?.trim()
+            ? node.note
+            : "Заметка пока не добавлена. Здесь можно хранить роль сервера, подсказки по деплою и важные детали."}
         </div>
 
         <div className="mt-auto flex flex-wrap gap-2">
           <button type="button" onClick={() => onOpenTerminal(node)} className="glass-button flex-1">
             <SquareTerminal className="mr-2 h-4 w-4" />
-            Open Console
+            Открыть консоль
           </button>
           <button type="button" onClick={() => onEdit(node.id)} className="glass-button px-3">
             <Pencil className="h-4 w-4" />
