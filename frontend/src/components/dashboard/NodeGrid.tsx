@@ -1,14 +1,17 @@
 import { Plus } from "lucide-react";
 
-import type { NodeSummary } from "../../types/api";
+import type { NodeStatus, NodeSummary } from "../../types/api";
 import { SectionCard } from "../layout/SectionCard";
 import { NodeCard } from "./NodeCard";
 
 type NodeGridProps = {
   nodes: NodeSummary[];
+  nodeStatuses: Record<number, NodeStatus>;
   selectedNodeIds: number[];
   onCreate: () => void;
   onToggleSelect: (nodeId: number) => void;
+  onTogglePin: (node: NodeSummary) => void;
+  onOpenStats: (node: NodeSummary) => void;
   onOpenTerminal: (node: NodeSummary) => void;
   onEdit: (nodeId: number) => void;
   onDelete: (nodeId: number) => void;
@@ -16,9 +19,12 @@ type NodeGridProps = {
 
 export function NodeGrid({
   nodes,
+  nodeStatuses,
   selectedNodeIds,
   onCreate,
   onToggleSelect,
+  onTogglePin,
+  onOpenStats,
   onOpenTerminal,
   onEdit,
   onDelete,
@@ -42,8 +48,11 @@ export function NodeGrid({
             <NodeCard
               key={node.id}
               node={node}
+              status={nodeStatuses[node.id] ?? "offline"}
               selected={selectedNodeIds.includes(node.id)}
               onToggleSelect={onToggleSelect}
+              onTogglePin={onTogglePin}
+              onOpenStats={onOpenStats}
               onOpenTerminal={onOpenTerminal}
               onEdit={onEdit}
               onDelete={onDelete}
