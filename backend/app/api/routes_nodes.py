@@ -1,16 +1,20 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_ssh_service
+from app.api.dependencies import get_monitoring_service, get_ssh_service
 from app.db.session import get_db_session
 from app.schemas.node import (
     CommandExecutionResponse,
     NodeCommandRequest,
     NodeCreate,
     NodeDetail,
+    NodeStatsResponse,
     NodeSummary,
     NodeUpdate,
 )
+from app.services.monitoring_service import MonitoringService
 from app.services.node_service import NodeService
 from app.services.ssh_service import SSHService
 
@@ -29,6 +33,15 @@ async def create_node(
     session: AsyncSession = Depends(get_db_session),
 ) -> NodeDetail:
     return await NodeService.create_node(session, payload)
+
+
+@router.get("/statuses", response_model=dict[int, Literal["online", "offline"]])
+async def get_node_statuses(
+    session: AsyncSession = Depends(get_db_session),
+    monitoring_service: MonitoringService = Depends(get_monitoring_service),
+) -> dict[int, Literal["online", "offline"]]:
+    nodes = await NodeService.list_nodes(session)
+    return monitoring_service.get_all_statuses([node.id for node in nodes])
 
 
 @router.get("/{node_id}", response_model=NodeDetail)
@@ -58,6 +71,19 @@ async def delete_node(node_id: int, session: AsyncSession = Depends(get_db_sessi
     deleted = await NodeService.delete_node(session, node_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
+
+
+@router.get("/{node_id}/stats", response_model=NodeStatsResponse)
+async def get_node_stats(
+    node_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    monitoring_service: MonitoringService = Depends(get_monitoring_service),
+) -> NodeStatsResponse:
+    node = await NodeService.get_node_model(session, node_id)
+    if node is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
+
+    return monitoring_service.get_node_stats(node_id)
 
 
 @router.post("/{node_id}/execute", response_model=CommandExecutionResponse)
