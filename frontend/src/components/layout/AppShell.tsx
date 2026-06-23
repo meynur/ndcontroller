@@ -22,23 +22,23 @@ export function AppShell({ children, selectedCount, totalNodes, openTerminals }:
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/40 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-slate-600">
               <Sparkles className="h-3.5 w-3.5" />
-              Personal Node Control
+              Личное управление нодами
             </div>
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-                Cloud dashboard with calm, glass-like focus.
+                Прозрачный центр управления серверами и командами.
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-                Manage Linux nodes, launch bulk commands, and keep multiple SSH terminals open in one
-                polished workspace.
+                Управляй Linux-нодами, запускай массовые команды и держи несколько SSH-терминалов
+                открытыми в одном аккуратном рабочем пространстве.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatCard icon={Cpu} label="Nodes" value={totalNodes} />
-            <StatCard icon={Boxes} label="Selected" value={selectedCount} />
-            <StatCard icon={MonitorPlay} label="Live Terminals" value={openTerminals} />
+            <StatCard icon={Cpu} label="Ноды" value={totalNodes} />
+            <StatCard icon={Boxes} label="Выбрано" value={selectedCount} />
+            <StatCard icon={MonitorPlay} label="Терминалы" value={openTerminals} />
           </div>
         </header>
 
